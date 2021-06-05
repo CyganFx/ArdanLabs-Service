@@ -4,6 +4,7 @@ import (
 	"context"
 	"expvar"
 	"fmt"
+	"github.com/CyganFx/ArdanLabs-Service/app/sales-api/handlers"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/ardanlabs/conf"
 	"github.com/pkg/errors"
-	"gitlab.com/tleuzhan13/se1903Service/app/sales-api/handlers"
 )
 
 var build = "develop"
@@ -29,7 +29,7 @@ func main() {
 }
 
 func run(log *log.Logger) error {
-// =========================================================================
+	// =========================================================================
 	// Configuration
 
 	var cfg struct {
@@ -78,7 +78,6 @@ func run(log *log.Logger) error {
 	}
 	log.Printf("main: Config:\n%v\n", out)
 
-	
 	// =========================================================================
 	// Start Debug Service
 	//
@@ -146,8 +145,6 @@ func run(log *log.Logger) error {
 
 		log.Printf("main: %v: Completed shutdown", sig)
 	}
-
-	
 
 	return nil
 }
