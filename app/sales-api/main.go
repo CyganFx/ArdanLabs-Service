@@ -70,7 +70,7 @@ func run(log *log.Logger) error {
 
 	expvar.NewString("build").Set(build)
 	log.Printf("main: Started: Application initializing: version %q", build)
-	defer log.Println("main: Completed")
+	defer log.Println(" main: Completed")
 
 	out, err := conf.String(&cfg)
 	if err != nil {
