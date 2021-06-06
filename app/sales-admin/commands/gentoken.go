@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/CyganFx/ArdanLabs-Service/business/auth"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
 	"log"
@@ -23,7 +24,7 @@ func GenToken() {
 	// The call to retrieve a user requires an Admin role by the caller.
 	claims := struct {
 		jwt.StandardClaims
-		Authorized []string
+		Roles []string `json:"roles"`
 	}{
 		StandardClaims: jwt.StandardClaims{
 			Issuer:    "service project",
@@ -31,7 +32,7 @@ func GenToken() {
 			ExpiresAt: time.Now().Add(8760 * time.Hour).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
-		Authorized: []string{"ADMIN"},
+		Roles: []string{auth.RoleAdmin},
 	}
 
 	method := jwt.GetSigningMethod("RS256")

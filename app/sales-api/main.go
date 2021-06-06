@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
 	"expvar"
 	"fmt"
 	"github.com/CyganFx/ArdanLabs-Service/app/sales-api/handlers"
+	"github.com/CyganFx/ArdanLabs-Service/business/auth"
+	"github.com/dgrijalva/jwt-go"
+	"io/ioutil"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -40,6 +44,11 @@ func run(log *log.Logger) error {
 			ReadTimeout     time.Duration `conf:"default:5s"`
 			WriteTimeout    time.Duration `conf:"default:5s"`
 			ShutdownTimeout time.Duration `conf:"default:5s"`
+		}
+		Auth struct {
+			KeyID          string `conf:"default:54bb2165-71e1-41a6-af3e-7da4a0e1e2c1"`
+			PrivateKeyFile string `conf:"default:C:\\Users\\Думан\\go\\src\\github.com\\CyganFx\\se1903service\\private.pem"`
+			Algorithm      string `conf:"default:RS256"`
 		}
 	}
 	cfg.Version.SVN = build
@@ -79,6 +88,34 @@ func run(log *log.Logger) error {
 	log.Printf("main: Config:\n%v\n", out)
 
 	// =========================================================================
+	// Initialize authentication support
+
+	log.Println("main : Started : Initializing authentication support")
+
+	privatePEM, err := ioutil.ReadFile(cfg.Auth.PrivateKeyFile)
+	if err != nil {
+		return errors.Wrap(err, "reading auth private key")
+	}
+
+	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privatePEM)
+	if err != nil {
+		return errors.Wrap(err, "parsing auth private key")
+	}
+
+	lookup := func(kid string) (*rsa.PublicKey, error) {
+		switch kid {
+		case cfg.Auth.KeyID:
+			return &privateKey.PublicKey, nil
+		}
+		return nil, fmt.Errorf("no public key found for the specified kid: %s", kid)
+	}
+
+	auth, err := auth.New(cfg.Auth.Algorithm, lookup, auth.Keys{cfg.Auth.KeyID: privateKey})
+	if err != nil {
+		return errors.Wrap(err, "constructing auth")
+	}
+
+	// =========================================================================
 	// Start Debug Service
 	//
 	// /debug/pprof - Added to the default mux by importing the net/http/pprof package.
@@ -107,7 +144,7 @@ func run(log *log.Logger) error {
 
 	api := http.Server{
 		Addr:         cfg.Web.APIHost,
-		Handler:      handlers.API(build, shutdown, log),
+		Handler:      handlers.API(build, shutdown, log, auth),
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 	}
