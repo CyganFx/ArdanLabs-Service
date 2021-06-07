@@ -2,28 +2,30 @@ package handlers
 
 import (
 	"context"
+	"github.com/CyganFx/ArdanLabs-Service/foundation/database"
 	"github.com/CyganFx/ArdanLabs-Service/foundation/web"
-	"log"
+	"github.com/jmoiron/sqlx"
 	"net/http"
 )
 
-type check struct {
-	logger *log.Logger
+type checkGroup struct {
+	build string
+	db    *sqlx.DB
 }
 
-func (c check) readiness(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	//id := web.Param(r, "id")
-
-	//var u user.User
-	//if err := web.Decode(r, &u); err != nil {
-	//	return err
-	//}
-
-	status := struct {
-		Status string
-	}{
-		Status: "Ok",
+func (cg checkGroup) readiness(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	status := "ok"
+	statusCode := http.StatusOK
+	if err := database.StatusCheck(ctx, cg.db); err != nil {
+		status = "db not ready"
+		statusCode = http.StatusInternalServerError
 	}
 
-	return web.Respond(ctx, w, status, http.StatusOK)
+	health := struct {
+		Status string `json:"status"`
+	}{
+		Status: status,
+	}
+
+	return web.Respond(ctx, w, health, statusCode)
 }

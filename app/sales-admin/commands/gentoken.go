@@ -37,12 +37,11 @@ func GenToken() {
 
 	method := jwt.GetSigningMethod("RS256")
 	tkn := jwt.NewWithClaims(method, claims)
-	tkn.Header["kid"] = "random-string"
+	tkn.Header["kid"] = "54bb2165-71e1-41a6-af3e-7da4a0e1e2c1"
 	str, err := tkn.SignedString(privateKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	fmt.Printf("-----BEGIN TOKEN-----\n%s\n-----END TOKEN-----\n", str)
-
 }

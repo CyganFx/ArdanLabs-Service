@@ -20,7 +20,7 @@ func Authenticate(a *auth.Auth) web.Middleware {
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
 			// Expecting: bearer <token>
-			authStr := r.Header.Get("Authorization")
+			authStr := r.Header.Get("authorization")
 
 			// Parse the authorization header.
 			parts := strings.Split(authStr, " ")

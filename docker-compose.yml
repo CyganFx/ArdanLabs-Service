@@ -1,0 +1,25 @@
+#version: "3"
+#services:
+#  sales-api:
+#    build:
+#      dockerfile: Dockerfile
+#      context: ./zarf/docker
+#    container_name: sales-api_container
+#    ports:
+#      - "3000:3000"
+#    command: ./myApp
+#    restart: always
+#    depends_on:
+#      - sales-api_db
+#
+#  sales-api_db:
+#    image: postgres
+#    container_name: sales-api_db
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - postgres-data:/var/lib/postgresql/data
+#    restart: always
+#
+#volumes:
+#  postgres-data:
