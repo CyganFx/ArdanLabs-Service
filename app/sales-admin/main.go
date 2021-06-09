@@ -13,7 +13,7 @@ func main() {
 	commands.GenToken()
 	cfg := database.Config{
 		User:       "postgres",
-		Password:   "duman070601",
+		Password:   "not working password",
 		Host:       "0.0.0.0",
 		Name:       "ardan_labs",
 		DisableTLS: true,

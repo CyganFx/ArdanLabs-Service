@@ -25,3 +25,9 @@ monitor:
 test:
 	go test -v ./... -count=1
 
+# // Create cover profile:
+#	go test -coverprofile cover.out
+
+
+# // Show test coverage in browser:
+#	go tool cover -html cover.out

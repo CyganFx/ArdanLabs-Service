@@ -5,37 +5,28 @@ import (
 	"crypto/rsa"
 	"expvar"
 	"fmt"
+	"github.com/CyganFx/ArdanLabs-Service/app/config"
 	"github.com/CyganFx/ArdanLabs-Service/app/sales-api/handlers"
 	"github.com/CyganFx/ArdanLabs-Service/business/auth"
 	"github.com/CyganFx/ArdanLabs-Service/foundation/database"
 	"github.com/ardanlabs/conf"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
-	"time"
 )
 
-var (
-	build = "develop"
-)
+var build = "develop"
 
 const configsDir = "./zarf/configs/main.yaml"
 
 func main() {
 	log := log.New(os.Stdout, "SALES : ", log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
-
-	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err.Error())
-	}
 
 	if err := run(log); err != nil {
 		log.Println("main: error:", err)
@@ -44,72 +35,15 @@ func main() {
 }
 
 func run(log *log.Logger) error {
+
 	// =========================================================================
 	// Configuration
 
-	//You should be in root directory in order to run this successfully
-	privateKeyFilePath, err := filepath.Abs("./private.pem")
-	if err != nil {
-		return errors.Wrap(err, "getting private key path")
+	var cfg config.Config
+	const prefix = "SALES"
+	if err := config.Init(&cfg, configsDir, prefix, build); err != nil {
+		return errors.Wrap(err, "initializing configs")
 	}
-
-	var cfg struct {
-		conf.Version
-		Web struct {
-			APIHost         string        `conf:"default:0.0.0.0:3000"`
-			DebugHost       string        `conf:"default:0.0.0.0:4000"`
-			ReadTimeout     time.Duration `conf:"default:5s"`
-			WriteTimeout    time.Duration `conf:"default:5s"`
-			ShutdownTimeout time.Duration `conf:"default:5s"`
-		}
-		Auth struct {
-			KeyID          string `conf:"default:54bb2165-71e1-41a6-af3e-7da4a0e1e2c1"`
-			PrivateKeyFile string
-			Algorithm      string `conf:"default:RS256"`
-		}
-		DB struct {
-			User       string `conf:"default:postgres"`
-			Password   string `conf:"default:postgres,noprint"`
-			Host       string `conf:"default:0.0.0.0"`
-			Name       string `conf:"default:postgres" yaml:"name"`
-			DisableTLS bool   `conf:"default:true"`
-		} `yaml:"db"`
-	}
-
-	cfg.Auth.PrivateKeyFile = privateKeyFilePath
-	cfg.Version.SVN = build
-	cfg.Version.Desc = "copyright information here"
-
-	if err := conf.Parse(os.Args[1:], "SALES", &cfg); err != nil {
-		switch err {
-		case conf.ErrHelpWanted:
-			usage, err := conf.Usage("SALES", &cfg)
-			if err != nil {
-				return errors.Wrap(err, "generating config usage")
-			}
-			fmt.Println(usage)
-			return nil
-		case conf.ErrVersionWanted:
-			version, err := conf.VersionString("SALES", &cfg)
-			if err != nil {
-				return errors.Wrap(err, "generating config version")
-			}
-			fmt.Println(version)
-			return nil
-		}
-		return errors.Wrap(err, "parsing config")
-	}
-
-	content, err := ioutil.ReadFile(configsDir)
-	if err != nil {
-		return errors.Wrap(err, "reading file")
-	}
-
-	if err = yaml.Unmarshal(content, &cfg); err != nil {
-		return errors.Wrap(err, "unmarshalling config")
-	}
-
-	cfg.DB.Password = os.Getenv("DB_PASS")
 
 	// =========================================================================
 	// App Starting
