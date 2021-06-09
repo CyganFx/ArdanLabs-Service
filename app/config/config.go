@@ -34,11 +34,16 @@ type Config struct {
 		Name       string `conf:"default:postgres" yaml:"name"`
 		DisableTLS bool   `conf:"default:true"`
 	} `yaml:"db"`
+	Zipkin struct {
+		ReporterURI string  `conf:"default:http://0.0.0.0:9411/api/v2/spans"`
+		ServiceName string  `conf:"default:sales-api"`
+		Probability float64 `conf:"default:0.05"`
+	}
 }
 
 func Init(cfg *Config, configsDir, prefix, build string) error {
 
-	//You should be in root directory in order to run this successfully
+	//Warning! you should be in root directory in order to run this successfully
 	privateKeyFilePath, err := filepath.Abs("./private.pem")
 	if err != nil {
 		return errors.Wrap(err, "getting private key path")
@@ -80,6 +85,8 @@ func Init(cfg *Config, configsDir, prefix, build string) error {
 	if err = cleanenv.ReadEnv(cfg); err != nil {
 		return errors.Wrap(err, "reading env")
 	}
+
+	cfg.Zipkin.ReporterURI = "http://0.0.0.0:9411/api/v2/spans"
 
 	return nil
 }

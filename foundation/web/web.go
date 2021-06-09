@@ -3,13 +3,14 @@ package web
 
 import (
 	"context"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 	"net/http"
 	"os"
 	"syscall"
 	"time"
 
 	"github.com/dimfeld/httptreemux/v5"
-	"github.com/google/uuid"
 )
 
 // ctxKey represents the type of value for the context key.
@@ -33,22 +34,48 @@ type Handler func(ctx context.Context, w http.ResponseWriter, r *http.Request) e
 // object for each of our http handlers. Feel free to add any configuration
 // data/logic on this App struct.
 type App struct {
-	*httptreemux.ContextMux
+	mux      *httptreemux.ContextMux
+	otmux    http.Handler
 	shutdown chan os.Signal
 	mw       []Middleware
 }
 
 // NewApp creates an App value that handle a set of routes for the application.
 func NewApp(shutdown chan os.Signal, mw ...Middleware) *App {
-	app := App{
-		ContextMux: httptreemux.NewContextMux(),
-		shutdown:   shutdown,
-		mw:         mw,
-	}
 
-	return &app
+	// Create an OpenTelemetry HTTP Handler which wraps our router. This will start
+	// the initial span and annotate it with information about the request/response.
+	//
+	// This is configured to use the W3C TraceContext standard to set the remote
+	// parent if an client request includes the appropriate headers.
+	// https://w3c.github.io/trace-context/
+
+	mux := httptreemux.NewContextMux()
+
+	return &App{
+		mux:      mux,
+		otmux:    otelhttp.NewHandler(mux, "request"),
+		shutdown: shutdown,
+		mw:       mw,
+	}
 }
 
+// ServeHTTP implements the http.Handler interface. It's the entry point for
+// all http traffic and allows the opentelemetry mux to run first to handle
+// tracing. The opentelemetry mux then calls the application mux to handle
+// application traffic.
+func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.otmux.ServeHTTP(w, r)
+}
+
+// SignalShutdown is used to gracefully shutdown the app when an integrity
+// issue is identified.
+func (a *App) SignalShutdown() {
+	a.shutdown <- syscall.SIGTERM
+}
+
+// Handle performs the real work of applying boilerplate and framework code
+// for a handler.
 func (a *App) Handle(method string, path string, handler Handler, mw ...Middleware) {
 	// First wrap handler specific middleware around this handler.
 	handler = wrapMiddleware(mw, handler)
@@ -56,13 +83,16 @@ func (a *App) Handle(method string, path string, handler Handler, mw ...Middlewa
 	handler = wrapMiddleware(a.mw, handler)
 
 	h := func(w http.ResponseWriter, r *http.Request) {
+
 		// Start or expand a distributed trace.
 		ctx := r.Context()
+		ctx, span := trace.SpanFromContext(ctx).Tracer().Start(ctx, r.URL.Path)
+		defer span.End()
 
 		// Set the context with the required values to
 		// process the request.
 		v := Values{
-			TraceID: uuid.New().String(),
+			TraceID: span.SpanContext().TraceID().String(),
 			Now:     time.Now(),
 		}
 		ctx = context.WithValue(ctx, KeyValues, &v)
@@ -73,11 +103,5 @@ func (a *App) Handle(method string, path string, handler Handler, mw ...Middlewa
 		}
 	}
 
-	a.ContextMux.Handle(method, path, h)
-}
-
-// SignalShutdown is used to gracefully shutdown the app when an integrity
-// issue is identified.
-func (a *App) SignalShutdown() {
-	a.shutdown <- syscall.SIGTERM
+	a.mux.Handle(method, path, h)
 }
