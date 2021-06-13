@@ -1,5 +1,4 @@
 .circleci/
-zarf/
 .dockerignore
 .gitgnore
 CONTRIBUTORS

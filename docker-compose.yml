@@ -1,25 +1,30 @@
-#version: "3"
-#services:
-#  sales-api:
-#    build:
-#      dockerfile: Dockerfile
-#      context: ./zarf/docker
-#    container_name: sales-api_container
+version: '3.8'
+
+services:
+  db:
+    container_name: sales_db
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASS}
+    ports:
+      - 5432:5432
+
+  sales-api:
+    container_name: sales-api
+    image: sales-api:1.0
+    ports:
+      - 3000:3000 # CRUD API
+      - 4000:4000 # DEBUG API
+    depends_on:
+      - db
+
+#  metrics:
+#    container_name: metrics
+#    networks:
+#      - shared-network
+#    image: metrics-amd64:1.0
 #    ports:
-#      - "3000:3000"
-#    command: ./myApp
-#    restart: always
+#      - 3001:3001 # EXPVAR API
+#      - 4001:4001 # DEBUG API
 #    depends_on:
-#      - sales-api_db
-#
-#  sales-api_db:
-#    image: postgres
-#    container_name: sales-api_db
-#    ports:
-#      - "5432:5432"
-#    volumes:
-#      - postgres-data:/var/lib/postgresql/data
-#    restart: always
-#
-#volumes:
-#  postgres-data:
+#      - sales-api
