@@ -3,8 +3,6 @@ package web
 
 import (
 	"context"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel/trace"
 	"net/http"
 	"os"
 	"syscall"
@@ -42,19 +40,10 @@ type App struct {
 
 // NewApp creates an App value that handle a set of routes for the application.
 func NewApp(shutdown chan os.Signal, mw ...Middleware) *App {
-
-	// Create an OpenTelemetry HTTP Handler which wraps our router. This will start
-	// the initial span and annotate it with information about the request/response.
-	//
-	// This is configured to use the W3C TraceContext standard to set the remote
-	// parent if an client request includes the appropriate headers.
-	// https://w3c.github.io/trace-context/
-
 	mux := httptreemux.NewContextMux()
 
 	return &App{
 		mux:      mux,
-		otmux:    otelhttp.NewHandler(mux, "request"),
 		shutdown: shutdown,
 		mw:       mw,
 	}
@@ -86,14 +75,11 @@ func (a *App) Handle(method string, path string, handler Handler, mw ...Middlewa
 
 		// Start or expand a distributed trace.
 		ctx := r.Context()
-		ctx, span := trace.SpanFromContext(ctx).Tracer().Start(ctx, r.URL.Path)
-		defer span.End()
 
 		// Set the context with the required values to
 		// process the request.
 		v := Values{
-			TraceID: span.SpanContext().TraceID().String(),
-			Now:     time.Now(),
+			Now: time.Now(),
 		}
 		ctx = context.WithValue(ctx, KeyValues, &v)
 

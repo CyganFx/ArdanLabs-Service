@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/CyganFx/ArdanLabs-Service/foundation/web"
 	"github.com/pkg/errors"
-	"go.opentelemetry.io/otel/trace"
 	"log"
 	"net/http"
 	"runtime/debug"
@@ -19,9 +18,6 @@ func Panics(log *log.Logger) web.Middleware {
 
 		// Create the handler that will be attached in the middleware chain.
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) (err error) {
-			ctx, span := trace.SpanFromContext(ctx).Tracer().Start(ctx, "business.mid.panics")
-			defer span.End()
-
 			// If the context is missing this value, request the service
 			// to be shutdown gracefully.
 			v, ok := ctx.Value(web.KeyValues).(*web.Values)

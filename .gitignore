@@ -3,6 +3,8 @@ app/sales-admin/sales-admin
 app/sales-api/sales-api
 app/sidecar/metrics/metrics
 
+.env
+
 # Mac
 .DS_Store
 
@@ -38,3 +40,4 @@ _testmain.go
 *.exe
 //*.test
 .vscode/tasks.json
+

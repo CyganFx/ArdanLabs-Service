@@ -44,11 +44,11 @@ func TestUsers(t *testing.T) {
 // crudUser performs a complete test of CRUD against the api.
 func (ut *UserTests) crudUser(t *testing.T) {
 	nu := ut.postUser201(t)
-	defer ut.deleteUser204(t, nu.ID)
+	//defer ut.deleteUser204(t, nu.ID)
 
 	ut.getUser200(t, nu.ID)
-	ut.putUser204(t, nu.ID)
-	ut.putUser403(t, nu.ID)
+	//ut.putUser204(t, nu.ID)
+	//ut.putUser403(t, nu.ID)
 }
 
 // postUser201 validates a user can be created with the endpoint.
